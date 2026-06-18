@@ -4,7 +4,6 @@ const { CreatorCardMessages } = require('@app/messages');
 const serializeCard = require('./serialize');
 
 async function getCreatorCard(serviceData, options = {}) {
-  let response;
   const { slug, access_code: accessCode } = serviceData;
 
   const card = await CreatorCardRepository.findOne({ query: { slug, deleted: null } });
@@ -27,7 +26,7 @@ async function getCreatorCard(serviceData, options = {}) {
     }
   }
 
-  response = serializeCard(card, { omitAccessCode: true });
+  const response = serializeCard(card, { omitAccessCode: true });
 
   return response;
 }

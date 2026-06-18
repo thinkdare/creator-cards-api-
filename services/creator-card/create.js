@@ -85,27 +85,25 @@ function generateSlugBase(title) {
 }
 
 async function resolveSlug(data) {
-  let slug = data.slug;
+  const { slug } = data;
 
   if (slug) {
     const existing = await CreatorCardRepository.findOne({ query: { slug, deleted: null } });
     if (existing) {
       throwAppError(CreatorCardMessages.SLUG_TAKEN, ERROR_CODE.SL02);
     }
-  } else {
-    const slugBase = generateSlugBase(data.title);
-    const baseIsTaken =
-      slugBase.length < 5 ||
-      !!(await CreatorCardRepository.findOne({ query: { slug: slugBase, deleted: null } }));
-
-    slug = baseIsTaken ? `${slugBase}-${randomBytes(6)}` : slugBase;
+    return slug;
   }
 
-  return slug;
+  const slugBase = generateSlugBase(data.title);
+  const baseIsTaken =
+    slugBase.length < 5 ||
+    !!(await CreatorCardRepository.findOne({ query: { slug: slugBase, deleted: null } }));
+
+  return baseIsTaken ? `${slugBase}-${randomBytes(6)}` : slugBase;
 }
 
 async function createCreatorCard(serviceData, options = {}) {
-  let response;
   const data = validator.validate(serviceData, parsedCreateSpec);
 
   const accessType = data.access_type || 'public';
@@ -142,7 +140,7 @@ async function createCreatorCard(serviceData, options = {}) {
     throw error;
   }
 
-  response = serializeCard(card);
+  const response = serializeCard(card);
 
   return response;
 }

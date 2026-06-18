@@ -11,7 +11,6 @@ const deleteSpec = `root {
 const parsedDeleteSpec = validator.parse(deleteSpec);
 
 async function deleteCreatorCard(serviceData, options = {}) {
-  let response;
   validator.validate(serviceData, parsedDeleteSpec);
 
   const { slug } = serviceData;
@@ -29,7 +28,7 @@ async function deleteCreatorCard(serviceData, options = {}) {
     updateValues: { deleted: deletedAt },
   });
 
-  response = serializeCard({ ...card, deleted: deletedAt });
+  const response = serializeCard({ ...card, deleted: deletedAt });
 
   return response;
 }
