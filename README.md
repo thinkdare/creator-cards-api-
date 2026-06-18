@@ -95,6 +95,31 @@ VSL field-level validation errors use the framework's own format — they still 
 
 ---
 
+## Format Validations Beyond VSL
+
+The VSL DSL only supports length/min/max/enum constraints — it has no character-class or
+integer-only constraint. Four rules from the Entity table need a charset or numeric-type
+check that VSL can't express, so they're hand-validated in `services/creator-card/create.js`
+right after VSL validation runs:
+
+| Field | Rule | Why VSL can't enforce it |
+|---|---|---|
+| `slug` (client-provided) | `[a-z0-9\-_]` only | VSL has no character-class constraint |
+| `links[].url` | must start with `http://` or `https://` | `startsWith` only takes one literal prefix, not an "either/or" |
+| `service_rates.rates[].amount` | must be an integer | VSL's `number` type allows decimals; no integer-only constraint exists |
+| `access_code` | alphanumeric only | same character-class limitation as `slug` |
+
+These checks throw with the same `errorCode` (`'SPCL_VALIDATION'`) and `details` shape that
+`@app-core/validator-vsl` itself throws with internally, so a charset/format violation reads
+as an ordinary field validation error (HTTP 400, `{ status: 'error', message, code: 'SPCL_VALIDATION', errors: {...} }`)
+rather than introducing a brand-new ad-hoc business code that isn't in the assessment's
+documented `SL02`/`AC01`/`AC03`/`AC04`/`AC05`/`NF01`/`NF02` set.
+
+(`slug` auto-generation already strips invalid characters before insert — this check only
+applies when a client supplies their own `slug`.)
+
+---
+
 ## Deployment Notes
 
 Deployed on Render's free tier. The free tier spins down after ~15 minutes of inactivity, so the **first request after idling can take 30–60 seconds (cold start)** while the instance spins back up. This is expected behavior, not a bug.

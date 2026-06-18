@@ -128,6 +128,66 @@ describe('Creator Cards API', () => {
       assert.strictEqual(response.statusCode, 400);
       assert.strictEqual(response.data.status, 'error');
     });
+
+    it('rejects a client-provided slug with disallowed characters', async () => {
+      const response = await server.post('/creator-cards', {
+        body: {
+          title: 'Some Title Here',
+          creator_reference: VALID_CREATOR_REFERENCE,
+          status: 'published',
+          slug: 'Not_A_Valid Slug!',
+        },
+      });
+
+      assert.strictEqual(response.statusCode, 400);
+      assert.strictEqual(response.data.code, 'SPCL_VALIDATION');
+    });
+
+    it('rejects a link url without an http/https scheme', async () => {
+      const response = await server.post('/creator-cards', {
+        body: {
+          title: 'Some Title Here',
+          creator_reference: VALID_CREATOR_REFERENCE,
+          status: 'published',
+          links: [{ title: 'My Site', url: 'ftp://example.com' }],
+        },
+      });
+
+      assert.strictEqual(response.statusCode, 400);
+      assert.strictEqual(response.data.code, 'SPCL_VALIDATION');
+    });
+
+    it('rejects a non-integer service_rates amount', async () => {
+      const response = await server.post('/creator-cards', {
+        body: {
+          title: 'Some Title Here',
+          creator_reference: VALID_CREATOR_REFERENCE,
+          status: 'published',
+          service_rates: {
+            currency: 'NGN',
+            rates: [{ name: 'Logo Design', amount: 1500.5 }],
+          },
+        },
+      });
+
+      assert.strictEqual(response.statusCode, 400);
+      assert.strictEqual(response.data.code, 'SPCL_VALIDATION');
+    });
+
+    it('rejects a non-alphanumeric access_code', async () => {
+      const response = await server.post('/creator-cards', {
+        body: {
+          title: 'Some Title Here',
+          creator_reference: VALID_CREATOR_REFERENCE,
+          status: 'published',
+          access_type: 'private',
+          access_code: 'AB-12!',
+        },
+      });
+
+      assert.strictEqual(response.statusCode, 400);
+      assert.strictEqual(response.data.code, 'SPCL_VALIDATION');
+    });
   });
 
   describe('GET /creator-cards/:slug', () => {

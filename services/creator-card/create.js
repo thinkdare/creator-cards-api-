@@ -29,6 +29,54 @@ const createSpec = `root {
 
 const parsedCreateSpec = validator.parse(createSpec);
 
+const SLUG_CHARSET_REGEX = /^[a-z0-9-_]+$/;
+const ALPHANUMERIC_REGEX = /^[a-z0-9]+$/i;
+
+// Mirrors the errorCode/details shape @app-core/validator-vsl itself throws with,
+// so format rules VSL can't express (charsets, integer-only) still read as
+// ordinary field validation errors rather than a new ad-hoc business code.
+function assertFormat(condition, field, message) {
+  if (!condition) {
+    throwAppError(message, 'SPCL_VALIDATION', { details: { [field]: message } });
+  }
+}
+
+function validateFormats(data) {
+  if (data.slug) {
+    assertFormat(
+      SLUG_CHARSET_REGEX.test(data.slug),
+      'slug',
+      'slug may only contain lowercase letters, numbers, hyphens, and underscores.'
+    );
+  }
+
+  (data.links || []).forEach((link, index) => {
+    assertFormat(
+      link.url.startsWith('http://') || link.url.startsWith('https://'),
+      `links[${index}].url`,
+      'links[].url must start with http:// or https://.'
+    );
+  });
+
+  if (data.service_rates) {
+    data.service_rates.rates.forEach((rate, index) => {
+      assertFormat(
+        Number.isInteger(rate.amount),
+        `service_rates.rates[${index}].amount`,
+        'service_rates.rates[].amount must be a positive integer.'
+      );
+    });
+  }
+
+  if (data.access_code) {
+    assertFormat(
+      ALPHANUMERIC_REGEX.test(data.access_code),
+      'access_code',
+      'access_code must be exactly 6 alphanumeric characters.'
+    );
+  }
+}
+
 function generateSlugBase(title) {
   return title
     .toLowerCase()
@@ -69,6 +117,8 @@ async function createCreatorCard(serviceData, options = {}) {
   if (accessType === 'public' && data.access_code) {
     throwAppError(CreatorCardMessages.ACCESS_CODE_FORBIDDEN, ERROR_CODE.AC05);
   }
+
+  validateFormats(data);
 
   const slug = await resolveSlug(data);
 
